@@ -1,0 +1,27 @@
+name: TUI Price Checker
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'  # Spouštět každých 15 minut
+  workflow_dispatch:      # Umožní ruční spuštění tlačítkem pro test
+
+jobs:
+  check_price:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run script
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+        run: python main.py
