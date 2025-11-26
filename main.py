@@ -1,11 +1,10 @@
 import requests
 from bs4 import BeautifulSoup
 import os
+import re
 
-# Načtení hesel z GitHubu
 TELEGRAM_TOKEN = os.environ['TELEGRAM_TOKEN']
 CHAT_ID = os.environ['CHAT_ID']
-# Vaše URL s tabulkou
 URL = "https://www.tradegate.de/orderbuch_umsaetze.php?lang=en&isin=DE000TUAG505"
 
 def send_telegram_message(message):
@@ -18,33 +17,30 @@ def send_telegram_message(message):
 
 def get_tui_price():
     try:
-        headers = {'User-Agent': 'Mozilla/5.0'}
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
         response = requests.get(URL, headers=headers)
         
         if response.status_code == 200:
             soup = BeautifulSoup(response.text, 'html.parser')
             
-            # NOVÁ LOGIKA PRO TABULKU:
-            # Najdeme všechny buňky tabulky (tag 'td')
-            cells = soup.find_all('td')
+            # Hledáme všechny řádky tabulky
+            rows = soup.find_all('tr')
             
-            # Projdeme prvních 10 buněk (první řádek tabulky je hned na začátku)
-            found_prices = []
-            for cell in cells[:15]:
-                text = cell.text.strip()
-                # Hledáme text, který:
-                # 1. Obsahuje číslice
-                # 2. Obsahuje čárku (německý formát ceny 7,15)
-                # 3. Neobsahuje dvojtečku (to by byl čas 14:05)
-                if any(char.isdigit() for char in text) and ',' in text and ':' not in text:
-                    found_prices.append(text)
-
-            if found_prices:
-                # Obvykle je cena první nebo druhá hodnota (Volume | Price)
-                # Vrátíme první nalezenou hodnotu, která vypadá jako cena
-                return found_prices[0]
-            else:
-                return "Cena nenalezena v tabulce (zkontroluj HTML)"
+            # Procházíme řádky a hledáme první, který obsahuje data
+            for row in rows:
+                cols = row.find_all('td')
+                # Očekáváme řádek, který má alespoň 3 sloupce (Čas | Cena | Objem)
+                if len(cols) >= 3:
+                    # Tradegate formát: 1. sloupec=Čas, 2. sloupec=Cena, 3. sloupec=Objem
+                    price_text = cols[1].text.strip()
+                    
+                    # Kontrola, zda to vypadá jako cena (obsahuje číslice a tečku nebo čárku)
+                    if any(c.isdigit() for c in price_text) and ('.' in price_text or ',' in price_text):
+                        return price_text
+            
+            return "Cena nenalezena (Tabulka má jiný formát?)"
         else:
             return f"Chyba připojení: {response.status_code}"
     except Exception as e:
