@@ -2,7 +2,7 @@ name: TUI Price Checker
 
 on:
   schedule:
-    - cron: '*/15 * * * *'  # Spouštět každých 15 minut
+    - cron: '*/10 7-21 * * 1-5' # Spouštět každých 15 minut
   workflow_dispatch:      # Umožní ruční spuštění tlačítkem pro test
 
 jobs:
