@@ -2,8 +2,24 @@ name: TUI Price Checker
 
 on:
   schedule:
-    - cron: '*/10 7-21 * * 1-5' # Spouštět každých 15 minut
-  workflow_dispatch:      # Umožní ruční spuštění tlačítkem pro test
+    # 1. HLAVNÍ ČÁST DNE (8:00 - 16:45)
+    # UTC: 07:00 - 15:45 (běží každých 15 min)
+    - cron: '*/15 7-15 * * 1-5'
+
+    # 2. PŘELOMOVÁ HODINA (17:00, 17:15, 17:30)
+    # UTC: 16:00, 16:15, 16:30
+    # Tady explicitně říkáme minuty, abychom trefili přesně 17:30
+    - cron: '0,15,30 16 * * 1-5'
+
+    # 3. VEČER (18:00 - 21:30)
+    # UTC: 17:00 - 20:30 (běží každých 30 min)
+    - cron: '*/30 17-20 * * 1-5'
+
+    # 4. KONEC (22:00)
+    # UTC: 21:00 (poslední zpráva dne)
+    - cron: '0 21 * * 1-5'
+
+  workflow_dispatch:
 
 jobs:
   check_price:
