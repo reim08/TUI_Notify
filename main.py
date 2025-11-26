@@ -1,7 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
 import os
-import re
 
 TELEGRAM_TOKEN = os.environ['TELEGRAM_TOKEN']
 CHAT_ID = os.environ['CHAT_ID']
@@ -25,22 +24,23 @@ def get_tui_price():
         if response.status_code == 200:
             soup = BeautifulSoup(response.text, 'html.parser')
             
-            # Hledáme všechny řádky tabulky
+            # Najdeme všechny řádky tabulky
             rows = soup.find_all('tr')
             
-            # Procházíme řádky a hledáme první, který obsahuje data
             for row in rows:
                 cols = row.find_all('td')
-                # Očekáváme řádek, který má alespoň 3 sloupce (Čas | Cena | Objem)
-                if len(cols) >= 3:
-                    # Tradegate formát: 1. sloupec=Čas, 2. sloupec=Cena, 3. sloupec=Objem
-                    price_text = cols[1].text.strip()
+                # Podle screenshotu má tabulka 5 sloupců: Date | Time | Volume | Order Vol | PRICE
+                # Hledáme řádek, který má data (není to záhlaví)
+                if len(cols) >= 5:
+                    # Vezmeme ÚPLNĚ POSLEDNÍ sloupec (v Pythonu index -1 znamená poslední)
+                    price_text = cols[-1].text.strip()
                     
-                    # Kontrola, zda to vypadá jako cena (obsahuje číslice a tečku nebo čárku)
-                    if any(c.isdigit() for c in price_text) and ('.' in price_text or ',' in price_text):
+                    # Rychlá kontrola, zda to není prázdné a vypadá to jako číslo
+                    # (ignorujeme řádky, kde by cena chyběla)
+                    if len(price_text) > 0 and any(c.isdigit() for c in price_text):
                         return price_text
             
-            return "Cena nenalezena (Tabulka má jiný formát?)"
+            return "Cena nenalezena (Tabulka je prázdná?)"
         else:
             return f"Chyba připojení: {response.status_code}"
     except Exception as e:
@@ -48,6 +48,7 @@ def get_tui_price():
 
 if __name__ == "__main__":
     cena = get_tui_price()
-    zprava = f"📈 TUI Aktuální cena (Tradegate):\n\n{cena} EUR\n\n{URL}"
+    # Přidáme formátování, aby to vypadalo hezky
+    zprava = f"📈 TUI: {cena} EUR"
     send_telegram_message(zprava)
     print("Zpráva odeslána")
