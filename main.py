@@ -96,7 +96,7 @@ if __name__ == "__main__":
         elif "-" in zmena: emoji = "📉"
 
         zprava = (
-            f"<b>TUI AG</b>\n"
+            f"<b>PayPal</b>\n"
             f"💰 Cena: <b>{cena} EUR</b>\n"
             f"{emoji} Změna: <b>{zmena}</b>\n\n"
             f"<a href='{URL_PAGE}'>Web Tradegate</a>"
