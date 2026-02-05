@@ -5,7 +5,7 @@ import time
 
 TELEGRAM_TOKEN = os.environ['TELEGRAM_TOKEN']
 CHAT_ID = os.environ['CHAT_ID']
-ISIN = "DE000TUAG505"
+ISIN = "US70450Y1038"
 
 # URL stránky a grafu
 URL_PAGE = f"https://www.tradegate.de/orderbuch.php?lang=en&isin={ISIN}"
