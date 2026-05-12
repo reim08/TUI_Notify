@@ -8,17 +8,17 @@ CHAT_ID = os.environ[‘CHAT_ID’]
 
 # ─── Konfigurace ETF ──────────────────────────────────────────────────────────
 
-# Formát: “TICKER”: (“Zobrazovaný název”, “ISIN”, “zdroj”)
+# Formát: “TICKER”: (“Zobrazovaný název”, “ISIN”)
 
-# zdroj: “de” = tradegate.de, “bsx” = tradegatebsx.com
+# ISINy ověř na Tradegate, pokud by scraping nefungoval.
 
 ETFS = {
-“CSG”: (“CSG”,                 “NL0015073TS8”, “bsx”),
-“SXR8”: (“S&P 500”,            “IE00B5BMR087”, “de”),
-“SXR7”: (“Nasdaq 100”,         “IE00B53SZB19”, “de”),
-“AMEA”: (“Asie”,               “IE00B5L8K969”, “de”),
-“SXRV”: (“Evropa”,             “IE00B4K48X80”, “de”),
-“ZPRS”: (“Malé společnosti”,   “IE00BCBJG560”, “de”),
+“CSG”: (“CSG”,                 “NL0015073TS8”),
+“SXR8”: (“S&P 500”,            “IE00B5BMR087”),
+“SXR7”: (“Nasdaq 100”,         “IE00B53SZB19”),
+“AMEA”: (“Asie”,               “IE00B5L8K969”),
+“SXRV”: (“Evropa”,             “IE00B4K48X80”),
+“ZPRS”: (“Malé společnosti”,   “IE00BCBJG560”),
 }
 
 # Graf se pošle vždy pro tento ticker (SP500)
@@ -29,9 +29,6 @@ CHART_TICKER = “SXR8”
 
 def tradegate_url(isin):
 return f”https://www.tradegate.de/orderbuch.php?lang=en&isin={isin}”
-
-def tradegate_bsx_url(isin):
-return f”https://www.tradegatebsx.com/orderbuch.php?lang=en&kaufen&isin={isin}”
 
 def chart_url(isin):
 return f”https://www.tradegate.de/images/charts/intraday/{isin}.png?t={int(time.time())}”
