@@ -10,7 +10,6 @@ CHAT_ID = os.environ.get('CHAT_ID')
 # ─── Konfigurace ETF a Akcií ──────────────────────────────────────────────────
 
 # Formát: "TICKER": ("Zobrazovaný název", "ISIN")
-# CSG je nyní na prvním místě, aby se v Telegramu zobrazilo jako první.
 ETFS = {
     "CSG":  ("CSG (Czechoslovak Group)", "NL0015073TS8"),
     "SXR8": ("S&P 500",            "IE00B5BMR087"),
@@ -20,7 +19,7 @@ ETFS = {
     "ZPRS": ("Malé společnosti",   "IE00BCBJG560"),
 }
 
-# Graf se pošle vždy pro tento ticker (ponecháno S&P 500)
+# Graf se pošle vždy pro tento ticker
 CHART_TICKER = "SXR8"
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -29,7 +28,7 @@ def tradegate_url(isin):
     return f"https://www.tradegate.de/orderbuch.php?lang=en&isin={isin}"
 
 def chart_url(isin):
-    return f"https://www.tradegate.de/images/charts/intraday/{isin}.png?t={int(time.time())}"
+    return f"https://www.tradegatebsx.com/images/charts/intraday/{isin}.png?t={int(time.time())}"
 
 def get_data(isin):
     """Stáhne cenu a změnu z Tradegate. Vrací (price, change, error)."""
@@ -75,22 +74,31 @@ def format_line(name, price, change):
     return f"{emoji} <b>{name}:</b> {price} EUR  <i>({change})</i>"
 
 def send_telegram(text, photo_url=None):
-    """Pošle zprávu (s fotkou nebo bez). Při selhání fotky zkusí jen text."""
+    """Pošle zprávu. Graf nejprve stáhne a pak pošle jako soubor."""
     try:
         if photo_url:
-            r = requests.post(
-                f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendPhoto",
-                data={"chat_id": CHAT_ID, "photo": photo_url,
-                      "caption": text, "parse_mode": "HTML"},
-                timeout=15
-            )
-            r.raise_for_status()
-            return
+            # 1. Stáhneme obrázek přes Python (maskujeme se jako prohlížeč)
+            img_r = requests.get(photo_url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=10)
+            
+            if img_r.status_code == 200:
+                # 2. Pošleme obrázek jako soubor přímo v requestu
+                r = requests.post(
+                    f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendPhoto",
+                    data={"chat_id": CHAT_ID, "caption": text, "parse_mode": "HTML"},
+                    files={"photo": ("chart.png", img_r.content)},
+                    timeout=15
+                )
+                r.raise_for_status()
+                return  # Úspěšně odesláno s fotkou, končíme
+            else:
+                print(f"Tradegate vrátil chybu při stahování grafu: {img_r.status_code}")
+                text += "\n⚠️ (Graf nedostupný - chyba stahování)"
+
     except Exception as e:
-        print(f"Graf se nepodařilo odeslat: {e}")
+        print(f"Graf se nepodařilo zpracovat nebo odeslat: {e}")
         text += "\n⚠️ (Graf nedostupný)"
 
-    # Fallback – jen text
+    # Fallback – odeslání pouze textové zprávy, pokud obrázek selhal
     try:
         requests.post(
             f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage",
@@ -116,7 +124,7 @@ if __name__ == "__main__":
             lines.append(format_line(name, price, change))
         time.sleep(0.5)  # Slušné chování vůči serveru
 
-    # Odkaz pod zprávou na hlavní sledovaný ticker (S&P 500)
+    # Odkaz pod zprávou na hlavní sledovaný ticker
     sp500_isin = ETFS[CHART_TICKER][1]
     lines.append(f"\n<a href='{tradegate_url(sp500_isin)}'>Otevřít Tradegate – {CHART_TICKER}</a>")
 
@@ -124,4 +132,3 @@ if __name__ == "__main__":
     print("\nOdesílám zprávu do Telegramu...")
     send_telegram(zprava, chart_url(sp500_isin))
     print("Hotovo!")
-
